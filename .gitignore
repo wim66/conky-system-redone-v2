@@ -1,0 +1,20 @@
+cpu-load.sh
+
+# Ignore temporary files
+temp/*
+*tmp
+*kopie*
+
+# Ignore directory metadata files
+*.directory
+.vscode
+.luacheckrc
+*.code-workspace
+
+# Ignore text files
+*.txt
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
