@@ -9,7 +9,9 @@ A liquid-glass Conky system monitor for Linux, rebuilt entirely in Lua + Cairo.
 `conky-system-redone-v2` is a full Lua/Cairo rebuild of the classic text-based
 `conky-system.conf`. Instead of relying on Conky's built-in text and bar
 rendering, every panel is hand-drawn on a Cairo surface with a soft, semi-
-transparent "glass" style.
+transparent "glass" style. `widget.lua` is the entry point Conky loads — it
+draws the core info panels itself and pulls in a couple of small companion
+scripts for the bars and graphs layers.
 
 Built and tested on Arch Linux with KDE Plasma (Wayland), but there's nothing
 Wayland- or KDE-specific in the widget itself — it should run anywhere Conky
@@ -74,7 +76,8 @@ silently skipped):
 
 2. Open `widget.lua` and set `network_iface` to your own network interface
    (find it with `ip -o link show`), and adjust any other config values
-   (colors, font, AUR helper, etc.) to taste.
+   (colors, font, AUR helper, etc.) to taste — see [Configuration](#configuration)
+   below for the full list.
 3. Start it:
 
    ```bash
@@ -84,6 +87,26 @@ silently skipped):
    or use the included `autostart.sh`, which stops any already-running
    `conky` cleanly before relaunching — handy to add to your desktop
    environment's own autostart.
+
+## Configuration
+
+Everything is set in the `CFG` table near the top of `widget.lua` — no other
+file needs editing for normal tweaks.
+
+### General
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `network_iface` | `"enp0s31f6"` | Interface used for the Network panel. Find yours with `ip -o link show`. |
+| `bars_module` | `"bars2"` | Which bars style to load from `scripts/`: `"bars"` or `"bars2"`. |
+| `graphs_module` | `"graphs2"` | Which graphs style to load from `scripts/`: `"graphs"` or `"graphs2"`. |
+
+### Updates
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `aur_helper` | `"yay"` | AUR helper for the extra Updates line. Set to `"paru"`, or `""` to disable AUR checking entirely. |
+| `show_flatpak_updates` | `true` | Adds a Flatpak update count. Safe to leave on even without Flatpak — it's skipped automatically if the `flatpak` binary isn't found. Involves a `flatpak update --appstream` metadata refresh every 30 minutes. |
 
 ## File overview
 

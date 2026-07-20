@@ -379,7 +379,7 @@
       <p class="lede">
         conky-system-redone-v2 rebuilds the classic text-based
         <code style="font-family: var(--mono); color: var(--frost-bright);">conky-system.conf</code>
-        as a single Lua script. Every panel — CPU, memory, storage, network,
+        in Lua and Cairo. Every panel — CPU, memory, storage, network,
         processes, updates — is hand-drawn on a Cairo surface with a soft,
         translucent finish instead of Conky's stock rendering.
       </p>
@@ -470,6 +470,33 @@ cd conky-system-redone-v2</code></pre>
           <pre><code>conky -c conky.conf</code></pre>
           <p>Or use <code style="font-family:var(--mono)">autostart.sh</code>, which stops any running conky cleanly before relaunching — add it to your desktop environment's autostart.</p>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="configuration">
+    <div class="section-head">
+      <p class="section-num">04 — Configuration</p>
+      <h2>Configuring the widget</h2>
+      <p class="section-sub">Everything lives in the <code style="font-family:var(--mono)">CFG</code> table near the top of <code style="font-family:var(--mono)">widget.lua</code> — no other file needs editing for normal tweaks.</p>
+    </div>
+    <div class="variants" style="grid-template-columns: 1fr; gap: 16px;">
+      <div class="glass" style="padding: 8px 20px;">
+        <p class="section-num" style="display:block; margin: 16px 0 4px;">General</p>
+        <table class="req-table">
+          <tr><th>Key</th><th>Default</th><th>Description</th></tr>
+          <tr><td>network_iface</td><td>"enp0s31f6"</td><td>Interface used for the Network panel. Find yours with <code style="font-family:var(--mono)">ip -o link show</code>.</td></tr>
+          <tr><td>bars_module</td><td>"bars2"</td><td>Which bars style to load from <code style="font-family:var(--mono)">scripts/</code>: "bars" or "bars2".</td></tr>
+          <tr><td>graphs_module</td><td>"graphs2"</td><td>Which graphs style to load from <code style="font-family:var(--mono)">scripts/</code>: "graphs" or "graphs2".</td></tr>
+        </table>
+      </div>
+      <div class="glass" style="padding: 8px 20px;">
+        <p class="section-num" style="display:block; margin: 16px 0 4px;">Updates</p>
+        <table class="req-table">
+          <tr><th>Key</th><th>Default</th><th>Description</th></tr>
+          <tr><td>aur_helper</td><td>"yay"</td><td>AUR helper for the extra Updates line. Set to "paru", or "" to disable AUR checking entirely.</td></tr>
+          <tr><td>show_flatpak_updates</td><td>true</td><td>Adds a Flatpak update count. Safe to leave on even without Flatpak — skipped automatically if the <code style="font-family:var(--mono)">flatpak</code> binary isn't found. Involves a <code style="font-family:var(--mono)">flatpak update --appstream</code> metadata refresh every 30 minutes.</td></tr>
+        </table>
       </div>
     </div>
   </section>
