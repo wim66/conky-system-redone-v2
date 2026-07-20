@@ -9,8 +9,7 @@ A liquid-glass Conky system monitor for Linux, rebuilt entirely in Lua + Cairo.
 `conky-system-redone-v2` is a full Lua/Cairo rebuild of the classic text-based
 `conky-system.conf`. Instead of relying on Conky's built-in text and bar
 rendering, every panel is hand-drawn on a Cairo surface with a soft, semi-
-transparent "glass" style — a single `widget.lua` file drives the whole
-layout.
+transparent "glass" style.
 
 Built and tested on Arch Linux with KDE Plasma (Wayland), but there's nothing
 Wayland- or KDE-specific in the widget itself — it should run anywhere Conky
