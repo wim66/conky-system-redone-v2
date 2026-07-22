@@ -28,10 +28,15 @@ The main panel shows:
 - **Storage** — root partition, plus a separate "Home" row only if `/home` is
   actually its own filesystem (auto-detected)
 - **Network** — up/down speed and totals for a configurable interface
+- **Fans** — RPM per fan, auto-detected from every hwmon chip on the system
+  (e.g. `thinkpad`, motherboard Super I/O chips); every detected fan is
+  shown, including ones currently idle at 0 RPM — only truly absent sensors
+  are omitted — box height adjusts to how many are found, and the panel can
+  be toggled independently (see [Panels config](#panels))
 - **Processes** — top 6 by CPU usage
 - **Updates** — pacman/apt, and optionally AUR (yay/paru) and Flatpak update
   counts
-- **Date & time**
+- **Date & time** — toggled independently of the Fans panel
 
 Two extra modules layer on top of the main panel:
 
@@ -106,7 +111,20 @@ file needs editing for normal tweaks.
 | Key | Default | Description |
 | --- | --- | --- |
 | `aur_helper` | `"yay"` | AUR helper for the extra Updates line. Set to `"paru"`, or `""` to disable AUR checking entirely. |
-| `show_flatpak_updates` | `true` | Adds a Flatpak update count. Safe to leave on even without Flatpak — it's skipped automatically if the `flatpak` binary isn't found. Involves a `flatpak update --appstream` metadata refresh every 30 minutes. |
+| `show_flatpak_updates` | `false` | Adds a Flatpak update count. Safe to leave on even without Flatpak — it's skipped automatically if the `flatpak` binary isn't found. Involves a `flatpak update --appstream` metadata refresh every 30 minutes. |
+
+### Panels
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `show_fans` | `false` | Shows the Fans panel. Set to `false` to hide it entirely — no empty box is left behind. Requires `scripts/getfans.lua` to be loaded (see [File overview](#file-overview)); if it's missing, the panel just prints a small notice instead of erroring. |
+| `show_datetime` | `true` | Shows the Date & time panel. Independent of `show_fans` — toggle each on/off separately. |
+
+### Layout & positioning
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `vertical_align` | `"top"` | Where the content block sits vertically inside the conky window. `"top"` starts at `top_margin` (the original behavior). `"middle"` vertically centers the whole content block against the window's *actual* height, recomputed every frame — a reliable alternative to `conky.conf`'s own `alignment`/`gap_y`, which some window managers (KWin on Wayland, notably) ignore for `own_window_type = 'normal'` windows. A fixed pixel number also works for full manual control (a quoted numeric string like `"400"` is accepted too, in case you write it that way out of habit alongside `"top"`/`"middle"`). Whichever mode you pick, the bars/graphs modules from `scripts/` shift in lockstep instead of staying pinned to their own hardcoded positions. |
 
 ## File overview
 
@@ -116,6 +134,7 @@ scripts/bars.lua      bar-style CPU/mem/disk indicators — style 1
 scripts/bars2.lua     bar-style CPU/mem/disk indicators — style 2
 scripts/graphs.lua    CPU/network history graphs — style 1
 scripts/graphs2.lua   CPU/network history graphs — style 2
+scripts/getfans.lua   scans hwmon for fan RPMs, used by the Fans panel
 conky.conf           Conky window/runtime settings, loads widget.lua
 autostart.sh         (re)starts conky cleanly, for use with your DE's autostart
 ```

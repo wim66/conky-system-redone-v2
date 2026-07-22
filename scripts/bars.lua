@@ -130,6 +130,12 @@ local defaults = {
 -- (CPU/Memory/Disks boxes). height/width/blocks/space/colours are
 -- unchanged from the original script -- only where each bar sits was
 -- adjusted for this specific config.
+-- Each y value also adds `WIDGET_Y_OFFSET` (a plain global, set by
+-- widget.lua's own draw_all() every frame) so these bars shift in
+-- lockstep with the rest of the widget when CFG.vertical_align is
+-- "middle" or a fixed number, instead of staying pinned to the
+-- original fixed-"top" positions below. It's 0 (a no-op) whenever
+-- vertical_align is left at "top".
 function conky_main_bars()
 	local bars_settings = {
 		-- CPU usage for cpu0
@@ -145,7 +151,7 @@ function conky_main_bars()
 			smooth = true,
 			led_effect = "r",
 			x = 29,
-			y = 176,
+			y = 176 + (WIDGET_Y_OFFSET or 0),
 			height = 10,
 			width = 0,
 			blocks = 22,
@@ -166,7 +172,7 @@ function conky_main_bars()
 			smooth = true,
 			led_effect = "r",
 			x = 26.5,
-			y = 308,
+			y = 308 + (WIDGET_Y_OFFSET or 0),
 			height = 5,
 			width = 15,
 			blocks = 35,
@@ -185,7 +191,7 @@ function conky_main_bars()
 			mid_colour={{0.25,0x137333,1},{0.75,0x083015,1},{0.85,0xFF0000,0.5}},
 			alarm_colour={0xff0000,1},
 			x = 30,
-			y = 399,
+			y = 399 + (WIDGET_Y_OFFSET or 0),
 			blocks = 19,
 			space = 1,
 			height = 12,
@@ -207,7 +213,7 @@ function conky_main_bars()
 			mid_colour={{0.25,0x137333,1},{0.75,0x083015,1},{0.85,0xFF0000,0.5}},
 			alarm_colour={0xff0000,1},
 			x = 30,
-			y = 439,
+			y = 439 + (WIDGET_Y_OFFSET or 0),
 			blocks = 19,
 			space = 1,
 			height =12,

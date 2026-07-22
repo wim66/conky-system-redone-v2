@@ -1,7 +1,5 @@
 --[[
     widget.lua
-    conky-system, all-Lua/Cairo rebuild of the original TEXT-based
-    conky-system.conf, in a single file.
 --]]
 
 pcall(require, "cairo")
@@ -74,6 +72,33 @@ local CFG = {
     gap = 10,          -- vertical gap between boxes
     corner_radius = 10,
 
+    -- Draws a bright dashed-look border around the FULL conky window (not
+    -- just the widget's own glass boxes)
+    -- Off by default -- purely a sizing aid.
+    debug_show_canvas = false,
+
+    -- Where the widget's content block sits vertically inside the conky
+    -- window:
+    --   "top"    -- starts at CFG.top_margin (the original behavior)
+    --   "middle" -- vertically centers the whole content block within the
+    --              conky window's actual height (conky_window.height),
+    --              computed here in Lua every frame -- rather than
+    --              relying on conky.conf's own alignment/gap_y, which
+    --              several window managers (KWin on Wayland, notably)
+    --              simply ignore for own_window_type='normal' windows.
+    --              Stays centered even as optional sections (Fans,
+    --              AUR/Flatpak lines...) grow or shrink the content.
+    --   <number> -- a fixed Y offset in pixels, for full manual control.
+    --              A quoted numeric string (e.g. "400") also works, in
+    --              case you write it that way by habit alongside
+    --              "top"/"middle" -- both do the exact same thing.
+    -- Whichever mode is used, the same vertical shift is also applied to
+    -- the bars/graphs modules from scripts/ (via a small WIDGET_Y_OFFSET
+    -- global set in draw_all() below) so they move together with the
+    -- rest of the widget instead of staying pinned to their own
+    -- hardcoded positions.
+    vertical_align = "middle", -- "top", "middle", or a number of pixels
+
     -- AUR helper for extra "Updates" line, in addition to the pacman/apt
     -- check below. Set to "yay", "paru", or "" to disable AUR checking.
     aur_helper = "yay",
@@ -83,7 +108,16 @@ local CFG = {
     -- `flatpak update --appstream` metadata refresh every 30 minutes.
     -- Safe to leave on even without Flatpak installed -- it's simply
     -- skipped if the `flatpak` binary isn't found.
-    show_flatpak_updates = true,
+    show_flatpak_updates = false,
+
+    -- Shows the "Fans" box (RPM per fan, via getfans.lua). Set to false to
+    -- turn the whole section off -- the box simply isn't drawn at all,
+    -- regardless of whether getfans.lua loaded or how many fans it finds.
+    show_fans = false,
+
+    -- Shows the Date & time box at the bottom. Independent of show_fans
+    -- above -- toggle each on/off separately as you like.
+    show_datetime = true,
 
     -- Layer 1 is the base glass fill behind every box -- the one layer
     -- worth tuning per-wallpaper, since a busier/brighter background
@@ -104,6 +138,7 @@ local CFG = {
 
 try_require(CFG.graphs_module)
 try_require(CFG.bars_module)
+try_require("getfans")
 
 -- ==================== widget state ====================
 
@@ -544,6 +579,53 @@ local function draw_network(cr, x, y, w, h)
     draw_text(cr, x + w, y + 105, "Total down: " .. totaldown, 9, CFG.colors.text, 0.7, false, "right")
 end
 
+-- Fan RPMs, via the loaded getfans.lua's own conky_get_fans() (unmodified --
+-- see scripts/getfans.lua). That function returns one "${alignr}"-templated
+-- line per spinning fan for TEXT-conky's own renderer, so it's parsed here
+-- into a label/value pair and drawn with this widget's own draw_text
+-- right-align, same as every other section, rather than fed through
+-- conky_parse (which wouldn't honor ${alignr} outside the main template).
+-- Rate-limited to once every 2s since each call shells out to `ls` and
+-- reads several sysfs files.
+local function get_fans_raw()
+    if not conky_get_fans then return "" end
+    return cached("fans_raw", 2, function() return conky_get_fans() end) or ""
+end
+
+local function draw_fans(cr, x, y, w, h)
+    draw_text(cr, x, y + 10, "Fans", 12, CFG.colors.accent2, 1, true)
+
+    if not conky_get_fans then
+        draw_text(cr, x, y + 28, "getfans.lua not loaded", 10, CFG.colors.text, 0.6)
+        return
+    end
+
+    local i = 0
+    for line in get_fans_raw():gmatch("[^\n]+") do
+        i = i + 1
+        local label, value = line:match("^(.-)%$%{alignr%}(.*)$")
+        local yy = y + 10 + i * 18
+        if label then
+            draw_text(cr, x, yy, label, 10, CFG.colors.text, 0.9)
+            draw_text(cr, x + w, yy, value, 10, CFG.colors.text, 0.9, false, "right")
+        else
+            draw_text(cr, x, yy, line, 10, CFG.colors.text, 0.9)
+        end
+    end
+    if i == 0 then
+        draw_text(cr, x, y + 28, "No fan sensors found", 10, CFG.colors.text, 0.6)
+    end
+end
+
+-- Box height depends on how many fans are actually detected/spinning --
+-- same pattern as disks_section_height()/updates_section_height() above.
+local function fans_section_height()
+    local n = 0
+    for _ in get_fans_raw():gmatch("[^\n]+") do n = n + 1 end
+    if n == 0 then n = 1 end -- reserve a line for "No fan sensors found"
+    return 2 * CFG.pad + 10 + n * 18
+end
+
 local function draw_processes(cr, x, y, w, h)
     draw_text(cr, x, y + 10, "Processes", 12, CFG.colors.accent2, 1, true)
     for i = 1, 6 do
@@ -633,25 +715,102 @@ local SECTIONS = {
     { height = 80,  draw = draw_mem },
     { height = disks_section_height, draw = draw_disks },
     { height = 132, draw = draw_network },
+    { height = fans_section_height, draw = draw_fans, enabled = function() return CFG.show_fans end },
     { height = 140, draw = draw_processes },
     { height = updates_section_height, draw = draw_updates },
-    { height = 72,  draw = draw_datetime },
+    { height = 72,  draw = draw_datetime, enabled = function() return CFG.show_datetime end },
 }
 
 local function sec_h(sec)
     return type(sec.height) == "function" and sec.height() or sec.height
 end
 
-local function draw_all(cr, canvas_w)
+-- Sums every currently-enabled section's height plus the gaps between
+-- them (no top/bottom margin) -- this is the height of the content block
+-- itself. Recomputed every frame, so it tracks Fans/AUR/Flatpak sections
+-- growing or shrinking. Used for both CFG.vertical_align = "middle" and
+-- the debug canvas overlay below.
+local function total_content_height()
+    local total = 0
+    local first = true
+    for _, sec in ipairs(SECTIONS) do
+        if not sec.enabled or sec.enabled() then
+            if not first then total = total + CFG.gap end
+            total = total + sec_h(sec)
+            first = false
+        end
+    end
+    return total
+end
+
+-- Bright, hard-to-miss border around the ENTIRE conky window (canvas_w x
+-- canvas_h -- i.e. conky.conf's minimum_width/minimum_height as actually
+-- granted), plus a one-line readout comparing that to how tall the
+-- content block actually needs to be right now (content height + a
+-- top_margin-sized margin mirrored at the bottom). Toggle via
+-- CFG.debug_show_canvas.
+local function draw_canvas_debug_overlay(cr, canvas_w, canvas_h, content_h)
+    cairo_save(cr)
+    cairo_set_source_rgba(cr, 1, 0, 1, 0.9) -- magenta -- nothing else here looks like this
+    cairo_set_line_width(cr, 2)
+    cairo_rectangle(cr, 1, 1, canvas_w - 2, canvas_h - 2)
+    cairo_stroke(cr)
+    cairo_restore(cr)
+
+    local needed = math.ceil(content_h + 2 * CFG.top_margin)
+    local fits = needed <= canvas_h
+    local msg = string.format("canvas %dx%d | content needs ~%dpx tall | %s",
+        canvas_w, canvas_h, needed,
+        fits and "fits" or ("SHORT by " .. (needed - canvas_h) .. "px"))
+    draw_text(cr, 4, canvas_h - 6, msg, 9, fits and CFG.colors.accent3 or CFG.colors.danger, 1, true)
+end
+
+local function draw_all(cr, canvas_w, canvas_h)
     local x = CFG.margin
     local w = canvas_w - 2 * CFG.margin
-    local y = CFG.top_margin
+    local content_h = total_content_height()
+
+    -- CFG.vertical_align accepts "middle", "top", a plain number, OR a
+    -- numeric string (e.g. "400") -- the latter so a stray pair of quotes
+    -- around a pixel value (an easy mistake, since "top"/"middle" ARE
+    -- quoted strings) still works instead of silently doing nothing.
+    local y
+    if CFG.vertical_align == "middle" then
+        y = (canvas_h - content_h) / 2
+    elseif tonumber(CFG.vertical_align) then
+        y = tonumber(CFG.vertical_align)
+        -- Clamp so a number that's too large/small can't push the whole
+        -- content block off-canvas entirely (which would otherwise look
+        -- exactly like "nothing happened").
+        y = math.max(0, math.min(y, canvas_h - content_h))
+    else
+        y = CFG.top_margin
+    end
+
+    -- The bars/graphs modules (scripts/bars*.lua, scripts/graphs*.lua)
+    -- have their own hardcoded x/y positions, tuned for the original
+    -- fixed CFG.top_margin ("top") layout -- they have no other way to
+    -- know the content has shifted for "middle" or a custom number. This
+    -- global is the one bit of coordination between widget.lua and those
+    -- self-contained scripts: it's the same vertical delta widget.lua
+    -- itself just applied to its own boxes, so each script's own y values
+    -- (already tuned for the "top" position) can add this on top and
+    -- move in lockstep. 0 whenever vertical_align == "top" (the position
+    -- those scripts were originally tuned for), so nothing changes for
+    -- anyone not using the newer alignment options.
+    WIDGET_Y_OFFSET = y - CFG.top_margin
 
     for _, sec in ipairs(SECTIONS) do
-        local h = sec_h(sec)
-        draw_glass_box(cr, x, y, w, h)
-        sec.draw(cr, x + CFG.pad, y + CFG.pad, w - 2 * CFG.pad, h - 2 * CFG.pad)
-        y = y + h + CFG.gap
+        if not sec.enabled or sec.enabled() then
+            local h = sec_h(sec)
+            draw_glass_box(cr, x, y, w, h)
+            sec.draw(cr, x + CFG.pad, y + CFG.pad, w - 2 * CFG.pad, h - 2 * CFG.pad)
+            y = y + h + CFG.gap
+        end
+    end
+
+    if CFG.debug_show_canvas then
+        draw_canvas_debug_overlay(cr, canvas_w, canvas_h, content_h)
     end
 end
 
@@ -668,7 +827,9 @@ function conky_main()
         cairo_paint(cr)
         cairo_set_operator(cr, CAIRO_OPERATOR_OVER)
 
-        local ok, err = pcall(draw_all, cr, conky_window and conky_window.width or 280)
+        local ok, err = pcall(draw_all, cr,
+            conky_window and conky_window.width or 280,
+            conky_window and conky_window.height or 1040)
         if not ok then
             io.stderr:write("widget.lua draw error: " .. tostring(err) .. "\n")
         end

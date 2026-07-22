@@ -100,6 +100,15 @@ v1.1 (07/01/2011) Add draw_me parameter and correct memory leaks, thanks to "Cre
 -- Positions below (x, y, width) are set to match widget.lua's own box
 -- layout (CPU box content area, network box's two half-width columns).
 -- Nothing else in this file has been changed from the original script.
+-- Each entry's `base_y` is that original fixed-"top" position. Unlike
+-- the rest of this table (only built once, at updates==1), `y` itself is
+-- recomputed every frame from `base_y + WIDGET_Y_OFFSET` right before
+-- draw_graph() runs (see conky_draw_graph() below) -- WIDGET_Y_OFFSET is
+-- a plain global set by widget.lua's own draw_all() every frame, so
+-- these graphs keep following the rest of the widget when
+-- CFG.vertical_align is "middle" or a fixed number, instead of staying
+-- pinned to base_y forever once set_settings() has run its one time.
+-- It's 0 (a no-op) whenever vertical_align is left at "top".
 function set_settings()
 	graph_settings = {
 		{
@@ -107,7 +116,7 @@ function set_settings()
 			arg = "cpu0",
 			max = 100,
 			x = 24,
-			y = 235,
+			base_y = 235,
 			autoscale = false,
 			width = 240,
 			height = 50,
@@ -123,7 +132,7 @@ function set_settings()
 			arg = "enp0s31f6", -- change to your primary network interface
 			max = 5000,
 			x = 24,
-			y = 577,
+			base_y = 577,
 			autoscale = true,
 			width = 120,
 			height = 50,
@@ -139,7 +148,7 @@ function set_settings()
 			arg = "enp0s31f6", -- change to your primary network interface
 			max = 50000,
 			x = 147,
-			y = 577,
+			base_y = 577,
 			autoscale = true,
 			width = 120,
 			height = 50,
@@ -250,6 +259,16 @@ function conky_draw_graph()
 						graph_settings[i].automax = 1
 					end
 				end
+				-- Refreshed every frame (unlike the rest of this table,
+				-- which is only built once at updates==1): base_y is the
+				-- fixed, originally-tuned position; WIDGET_Y_OFFSET is
+				-- widget.lua's current vertical shift for CFG.vertical_align.
+				-- Recomputing y here (rather than baking the offset into
+				-- base_y back in set_settings()) is what makes the graph
+				-- keep following the rest of the widget even though
+				-- set_settings() itself never runs again after the first
+				-- update.
+				graph_settings[i].y = graph_settings[i].base_y + (WIDGET_Y_OFFSET or 0)
 				draw_graph(graph_settings[i])
 			end
 		end

@@ -379,7 +379,7 @@
       <p class="lede">
         conky-system-redone-v2 rebuilds the classic text-based
         <code style="font-family: var(--mono); color: var(--frost-bright);">conky-system.conf</code>
-        in Lua and Cairo. Every panel — CPU, memory, storage, network,
+        in Lua and Cairo. Every panel — CPU, memory, storage, network, fans,
         processes, updates — is hand-drawn on a Cairo surface with a soft,
         translucent finish instead of Conky's stock rendering.
       </p>
@@ -495,11 +495,17 @@ cd conky-system-redone-v2</code></pre>
         <table class="req-table">
           <tr><th>Key</th><th>Default</th><th>Description</th></tr>
           <tr><td>aur_helper</td><td>"yay"</td><td>AUR helper for the extra Updates line. Set to "paru", or "" to disable AUR checking entirely.</td></tr>
-          <tr><td>show_flatpak_updates</td><td>true</td><td>Adds a Flatpak update count. Safe to leave on even without Flatpak — skipped automatically if the <code style="font-family:var(--mono)">flatpak</code> binary isn't found. Involves a <code style="font-family:var(--mono)">flatpak update --appstream</code> metadata refresh every 30 minutes.</td></tr>
+          <tr><td>show_flatpak_updates</td><td>false</td><td>Adds a Flatpak update count. Safe to leave on even without Flatpak — skipped automatically if the <code style="font-family:var(--mono)">flatpak</code> binary isn't found. Involves a <code style="font-family:var(--mono)">flatpak update --appstream</code> metadata refresh every 30 minutes.</td></tr>
         </table>
       </div>
-    </div>
-  </section>
+      <div class="glass" style="padding: 8px 20px;">
+        <p class="section-num" style="display:block; margin: 16px 0 4px;">Panels</p>
+        <table class="req-table">
+          <tr><th>Key</th><th>Default</th><th>Description</th></tr>
+          <tr><td>show_fans</td><td>false</td><td>Shows the Fans panel (RPM per fan, via <code style="font-family:var(--mono)">scripts/getfans.lua</code>). Set to <code style="font-family:var(--mono)">false</code> to hide it entirely — no empty box is left behind.</td></tr>
+          <tr><td>show_datetime</td><td>true</td><td>Shows the Date &amp; time panel. Independent of <code style="font-family:var(--mono)">show_fans</code> — toggle each on/off separately.</td></tr>
+        </table>
+      </div>
 
   <footer>
     <p>conky-system-redone-v2 — built by wim66</p>
